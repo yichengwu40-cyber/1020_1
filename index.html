@@ -1,601 +1,84 @@
 <!DOCTYPE html>
-<html lang="zh-TW" class="dark">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESP32 智慧燈光控制儀表板 (BLE 藍芽版)</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        cyber: {
-                            bg: '#08090d',
-                            card: 'rgba(15, 18, 28, 0.75)',
-                            border: 'rgba(0, 243, 255, 0.18)',
-                            neonCyan: '#00f3ff',
-                            neonPink: '#ff007f',
-                            neonPurple: '#a855f7',
-                            neonYellow: '#eab308'
-                        }
-                    },
-                    boxShadow: {
-                        'neon-cyan': '0 0 20px rgba(0, 243, 255, 0.35)',
-                        'neon-pink': '0 0 20px rgba(255, 0, 127, 0.35)',
-                        'glow-panel': '0 8px 32px 0 rgba(0, 0, 0, 0.6)'
-                    }
-                }
-            }
-        }
-    </script>
+    <title>ESP32 WS2812 藍牙網頁控制</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
-
-        body {
-            font-family: 'Noto Sans TC', sans-serif;
-            background-color: #08090d;
-            color: #f1f5f9;
-            background-image: 
-                radial-gradient(circle at 15% 15%, rgba(0, 243, 255, 0.05) 0%, transparent 40%),
-                radial-gradient(circle at 85% 85%, rgba(255, 0, 127, 0.05) 0%, transparent 40%);
-        }
-
-        .font-cyber {
-            font-family: 'Orbitron', sans-serif;
-        }
-
-        .glass-card {
-            background: linear-gradient(135deg, rgba(18, 22, 36, 0.8) 0%, rgba(10, 12, 20, 0.9) 100%);
-            border: 1px solid rgba(0, 243, 255, 0.15);
-            backdrop-filter: blur(12px);
-            border-radius: 1rem;
-        }
-
-        .glass-card:hover {
-            border-color: rgba(0, 243, 255, 0.35);
-        }
-
-        /* Custom Slider Styling */
-        input[type=range] {
-            -webkit-appearance: none;
-            background: #1e293b;
-            border-radius: 8px;
-            height: 8px;
-        }
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            height: 22px;
-            width: 22px;
-            border-radius: 50%;
-            background: #00f3ff;
-            box-shadow: 0 0 10px #00f3ff;
-            cursor: pointer;
-            transition: transform 0.1s ease;
-        }
-        input[type=range]::-webkit-slider-thumb:hover {
-            transform: scale(1.2);
-        }
-
-        /* Color Picker Styling */
-        input[type="color"]::-webkit-color-swatch-wrapper {
-            padding: 0;
-        }
-        input[type="color"]::-webkit-color-swatch {
-            border: 2px solid rgba(255,255,255,0.2);
-            border-radius: 0.5rem;
-        }
-
-        /* LED Glow Effect */
-        .led-glow {
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #08090d;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #1e293b;
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #00f3ff;
-        }
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; background: #f4f7f6; }
+        .card { background: white; padding: 30px; border-radius: 12px; display: inline-block; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 320px; }
+        button { padding: 10px 20px; font-size: 16px; margin: 8px; cursor: pointer; border: none; border-radius: 6px; width: 80%; }
+        #connectBtn { background-color: #007bff; color: white; }
+        #onBtn { background-color: #28a745; color: white; }
+        #offBtn { background-color: #dc3545; color: white; }
+        #autoBtn { background-color: #ffc107; color: black; }
+        .control-group { margin: 15px 0; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between">
-
-    <!-- Top Navigation Header -->
-    <header class="border-b border-cyber-border bg-cyber-bg/80 sticky top-0 z-50 backdrop-blur-md">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-                <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-cyan-500 to-pink-500 flex items-center justify-center shadow-neon-cyan">
-                    <i data-lucide="bluetooth" class="w-6 h-6 text-black stroke-[2.5]"></i>
-                </div>
-                <div>
-                    <h1 class="font-cyber font-black text-xl sm:text-2xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-pink-500 to-purple-400">
-                        ESP32 BLE SYNCHRO
-                    </h1>
-                    <p class="text-xs text-slate-400 font-cyber flex items-center space-x-2">
-                        <span>WS2812 藍芽智慧控制儀表板</span>
-                        <span id="device-info-text" class="text-cyan-400 font-mono"></span>
-                    </p>
-                </div>
-            </div>
-
-            <!-- Connection Status & Button -->
-            <div class="flex items-center space-x-3">
-                <div id="connection-badge" class="hidden sm:flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-cyber border border-slate-700 bg-slate-900/60">
-                    <span id="status-dot" class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span>
-                    <span id="status-text" class="text-slate-400">未連線</span>
-                </div>
-                <button id="connect-btn" onclick="toggleConnection()" class="flex items-center space-x-2 px-5 py-2.5 rounded-xl font-cyber text-xs sm:text-sm font-bold bg-gradient-to-r from-cyan-500 to-blue-600 text-black hover:from-cyan-400 hover:to-blue-500 shadow-neon-cyan transition-all duration-300 transform hover:scale-105 active:scale-95">
-                    <i data-lucide="bluetooth-searching" class="w-4 h-4"></i>
-                    <span id="connect-btn-text">搜尋與連線 BLE</span>
-                </button>
-            </div>
-        </div>
-    </header>
-
-    <!-- Main Dashboard Grid -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+<body>
+    <div class="card">
+        <h2>ESP32 燈光控制面板</h2>
+        <button id="connectBtn">連接藍牙裝置</button>
+        <p id="status">狀態: 未連線</p>
+        <hr>
+        <button id="onBtn">開啟 LED</button>
+        <button id="offBtn">關閉 LED</button>
+        <button id="autoBtn">恢復光感自動模式</button>
         
-        <!-- Left Column: Unified Controls & Visual Preview (7 Cols) -->
-        <div class="lg:col-span-7 space-y-8">
-            
-            <!-- Unified LED Control Panel -->
-            <section class="glass-card p-6 sm:p-8 relative overflow-hidden shadow-glow-panel">
-                <div class="flex items-center justify-between mb-6">
-                    <div class="flex items-center space-x-3">
-                        <i data-lucide="sliders-horizontal" class="text-cyan-400 w-6 h-6"></i>
-                        <h2 class="font-cyber font-bold text-lg text-cyan-400">藍芽同步燈光控制面板</h2>
-                    </div>
-                    
-                    <!-- Main Power Toggle -->
-                    <button id="power-btn" onclick="togglePower()" class="px-5 py-2 rounded-xl font-cyber text-xs font-bold transition-all duration-300 flex items-center space-x-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30 shadow-lg">
-                        <i data-lucide="power" class="w-4 h-4"></i>
-                        <span id="power-btn-text">開關：開啟 (ON)</span>
-                    </button>
-                </div>
-
-                <div class="space-y-6">
-                    
-                    <!-- Color Selection Section -->
-                    <div>
-                        <label class="block text-xs font-cyber text-slate-300 mb-3 flex items-center justify-between">
-                            <span>自訂 RGB 顏色</span>
-                            <span id="hex-display" class="font-mono text-cyan-400 font-bold text-sm">#FF007F</span>
-                        </label>
-                        <div class="flex items-center space-x-4">
-                            <div class="relative">
-                                <input type="color" id="main-color-picker" value="#ff007f" oninput="onColorPickerChange(this.value)" class="w-16 h-12 bg-slate-900 border border-slate-700 rounded-xl cursor-pointer p-1">
-                            </div>
-                            
-                            <!-- Color Presets -->
-                            <div class="flex-1 grid grid-cols-7 gap-1.5 sm:gap-2">
-                                <button onclick="setPresetColor('#ff0000')" class="h-10 rounded-lg bg-red-600 hover:scale-110 transition-transform shadow-md" title="紅色"></button>
-                                <button onclick="setPresetColor('#00ff00')" class="h-10 rounded-lg bg-green-500 hover:scale-110 transition-transform shadow-md" title="綠色"></button>
-                                <button onclick="setPresetColor('#0066ff')" class="h-10 rounded-lg bg-blue-600 hover:scale-110 transition-transform shadow-md" title="藍色"></button>
-                                <button onclick="setPresetColor('#00f3ff')" class="h-10 rounded-lg bg-cyan-400 hover:scale-110 transition-transform shadow-md" title="青色"></button>
-                                <button onclick="setPresetColor('#a855f7')" class="h-10 rounded-lg bg-purple-500 hover:scale-110 transition-transform shadow-md" title="紫色"></button>
-                                <button onclick="setPresetColor('#eab308')" class="h-10 rounded-lg bg-yellow-500 hover:scale-110 transition-transform shadow-md" title="黃色"></button>
-                                <button onclick="setPresetColor('#ffffff')" class="h-10 rounded-lg bg-white hover:scale-110 transition-transform shadow-md" title="純白"></button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Brightness Control Slider -->
-                    <div>
-                        <div class="flex items-center justify-between text-xs font-cyber text-slate-300 mb-2">
-                            <span class="flex items-center space-x-1.5">
-                                <i data-lucide="sun" class="w-4 h-4 text-yellow-400"></i>
-                                <span>網頁基礎亮度設定 (BRIGHT)</span>
-                            </span>
-                            <span id="bright-val-text" class="font-bold text-cyan-400 text-sm">100% (255)</span>
-                        </div>
-                        <input type="range" id="bright-slider" min="0" max="255" value="255" oninput="onBrightnessChange(this.value)" class="w-full">
-                    </div>
-                </div>
-
-                <!-- Synchronized WS2812 Visual Preview -->
-                <div class="mt-8 pt-6 border-t border-slate-800">
-                    <h3 class="text-xs font-cyber text-slate-400 mb-4 flex items-center space-x-2">
-                        <i data-lucide="sparkles" class="w-4 h-4 text-pink-400"></i>
-                        <span>3x WS2812 LED 實時擬真模擬發光 (同步輸出)</span>
-                    </h3>
-                    
-                    <div class="bg-black/60 border border-slate-800 rounded-2xl p-6 flex justify-around items-center space-x-4">
-                        <!-- LED 0 -->
-                        <div class="flex flex-col items-center space-y-2">
-                            <div id="preview-led-0" class="w-14 h-14 rounded-full border border-slate-700 bg-slate-900 led-glow flex items-center justify-center">
-                                <span class="text-[10px] font-cyber text-black/50 font-bold">#0</span>
-                            </div>
-                            <span class="text-[11px] font-cyber text-slate-400">LED 0</span>
-                        </div>
-
-                        <!-- LED 1 -->
-                        <div class="flex flex-col items-center space-y-2">
-                            <div id="preview-led-1" class="w-14 h-14 rounded-full border border-slate-700 bg-slate-900 led-glow flex items-center justify-center">
-                                <span class="text-[10px] font-cyber text-black/50 font-bold">#1</span>
-                            </div>
-                            <span class="text-[11px] font-cyber text-slate-400">LED 1</span>
-                        </div>
-
-                        <!-- LED 2 -->
-                        <div class="flex flex-col items-center space-y-2">
-                            <div id="preview-led-2" class="w-14 h-14 rounded-full border border-slate-700 bg-slate-900 led-glow flex items-center justify-center">
-                                <span class="text-[10px] font-cyber text-black/50 font-bold">#2</span>
-                            </div>
-                            <span class="text-[11px] font-cyber text-slate-400">LED 2</span>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- BLE Log Console -->
-            <section class="glass-card p-6">
-                <div class="flex items-center justify-between mb-3">
-                    <h2 class="font-cyber font-bold text-xs text-slate-300 flex items-center space-x-2">
-                        <i data-lucide="terminal" class="w-4 h-4 text-cyan-400"></i>
-                        <span>BLE 藍芽 Console Log</span>
-                    </h2>
-                    <button onclick="clearLogs()" class="text-xs text-slate-400 hover:text-cyan-400 px-2.5 py-1 rounded bg-slate-900 border border-slate-800 font-cyber transition-all">
-                        清空訊息
-                    </button>
-                </div>
-                <div id="serial-log" class="bg-black/90 border border-slate-800 rounded-xl p-4 h-36 overflow-y-auto font-mono text-xs text-cyan-400/90 space-y-1">
-                    <div class="text-slate-500">[System] 準備就緒。點擊右上角「搜尋與連線 BLE」以尋找 41204328 裝置。</div>
-                </div>
-            </section>
+        <div class="control-group">
+            <label>顏色選擇: <input type="color" id="colorPicker" value="#ffffff"></label>
         </div>
-
-        <!-- Right Column: Real-time Sensors & Dynamic Info (5 Cols) -->
-        <div class="lg:col-span-5 space-y-8">
-            
-            <!-- Real-time Sensor Dashboard -->
-            <section class="glass-card p-6 shadow-glow-panel">
-                <h2 class="font-cyber font-bold text-lg text-cyan-400 mb-6 flex items-center space-x-2">
-                    <i data-lucide="activity" class="w-5 h-5 text-cyan-400"></i>
-                    <span>藍芽 BLE 感測器即時監控</span>
-                </h2>
-
-                <div class="space-y-6">
-                    
-                    <!-- LDR Light Sensor Card -->
-                    <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-xs font-medium text-slate-300 flex items-center space-x-2">
-                                <i data-lucide="sun-medium" class="w-4 h-4 text-yellow-400"></i>
-                                <span>光敏電阻 LDR (GPIO39) [json.l]</span>
-                            </span>
-                            <span id="ldr-val" class="font-cyber font-bold text-lg text-yellow-400">0</span>
-                        </div>
-                        <div class="w-full bg-slate-950 rounded-full h-3 overflow-hidden border border-slate-800">
-                            <div id="ldr-bar" class="bg-gradient-to-r from-yellow-600 to-yellow-400 h-full transition-all duration-300 rounded-full" style="width: 0%"></div>
-                        </div>
-                        <div class="flex justify-between items-center mt-2 text-[11px] text-slate-400">
-                            <span>環境越暗 ➔ 自動補光加亮</span>
-                            <span id="dark-factor-text" class="font-cyber text-yellow-400">暗度增益: 1.0x</span>
-                        </div>
-                    </div>
-
-                    <!-- Potentiometer Card -->
-                    <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-xs font-medium text-slate-300 flex items-center space-x-2">
-                                <i data-lucide="gauge" class="w-4 h-4 text-pink-400"></i>
-                                <span>可變電阻 Potentiometer [json.p]</span>
-                            </span>
-                            <span id="pot-val" class="font-cyber font-bold text-lg text-pink-400">0</span>
-                        </div>
-                        <div class="w-full bg-slate-950 rounded-full h-3 overflow-hidden border border-slate-800">
-                            <div id="pot-bar" class="bg-gradient-to-r from-pink-600 to-pink-400 h-full transition-all duration-300 rounded-full" style="width: 0%"></div>
-                        </div>
-                        <div class="flex justify-between items-center mt-2 text-[11px] text-slate-400">
-                            <span>硬體旋鈕比例</span>
-                            <span id="pot-percent" class="font-cyber text-pink-400">0%</span>
-                        </div>
-                    </div>
-
-                    <!-- Environment Temp & Humidity (Optional Sensor via BLE) -->
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-3 flex flex-col items-center">
-                            <span class="text-[11px] text-slate-400 font-cyber">溫度 (json.t)</span>
-                            <span id="temp" class="text-xl font-bold font-cyber text-cyan-400 mt-1">-- °C</span>
-                        </div>
-                        <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-3 flex flex-col items-center">
-                            <span class="text-[11px] text-slate-400 font-cyber">濕度 (json.h)</span>
-                            <span id="hum" class="text-xl font-bold font-cyber text-cyan-400 mt-1">-- %</span>
-                        </div>
-                    </div>
-
-                    <!-- Hardware Buttons Status -->
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-3 flex justify-between items-center">
-                            <span class="text-xs text-slate-400 font-cyber">按鈕 A</span>
-                            <span id="btnA" class="text-xs px-2 py-1 bg-slate-800 rounded font-bold text-purple-400">放開</span>
-                        </div>
-                        <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-3 flex justify-between items-center">
-                            <span class="text-xs text-slate-400 font-cyber">按鈕 B</span>
-                            <span id="btnB" class="text-xs px-2 py-1 bg-slate-800 rounded font-bold text-purple-400">放開</span>
-                        </div>
-                    </div>
-
-                    <!-- Calculated Final Brightness Output -->
-                    <div class="bg-gradient-to-r from-cyan-950/40 to-purple-950/40 border border-cyan-500/30 rounded-xl p-4 flex items-center justify-between">
-                        <div>
-                            <span class="text-xs font-cyber text-slate-300 block">綜合最終實際燈光輸出</span>
-                            <span class="text-[10px] text-slate-400">網頁亮度 × 暗度補償 × 硬體旋鈕</span>
-                        </div>
-                        <div class="text-right">
-                            <span id="final-bright-val" class="font-cyber font-black text-2xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-pink-400">0</span>
-                            <span class="text-xs text-slate-400 font-cyber"> / 255</span>
-                        </div>
-                    </div>
-
-                </div>
-            </section>
-
+        <div class="control-group">
+            <label>亮度調整: <br><input type="range" id="brightnessRange" min="0" max="255" value="150" style="width: 100%;"></label>
         </div>
-    </main>
-
-    <!-- Footer -->
-    <footer class="border-t border-cyber-border/50 py-4 text-center text-xs text-slate-500 font-cyber">
-        ESP32 WS2812 Synchro Controller &bull; Designed with Web Bluetooth API (BLE)
-    </footer>
+    </div>
 
     <script>
-        // =======================
-        // BLE UUID (與 app.js 完全一致)
-        // =======================
-        const SERVICE = "12345678-1234-1234-1234-000000000001";
-        const INFO    = "12345678-1234-1234-1234-000000000010";
-        const DATA    = "12345678-1234-1234-1234-000000000020";
-        const COMMAND = "12345678-1234-1234-1234-000000000030";
+        let bluetoothDevice;
+        let bluetoothCharacteristic;
 
-        let bleDevice = null;
-        let bleServer = null;
-        let commandChar = null;
-        let dataChar = null;
+        const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+        const CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26aae";
 
-        // UI State
-        let isPowerOn = true;
-        let currentHexColor = '#ff007f';
-        let currentRgb = { r: 255, g: 0, b: 127 };
-        let currentBrightness = 255;
-        let finalOutputBrightness = 255;
-
-        // Initialize Lucide Icons
-        lucide.createIcons();
-
-        function appendLog(message, isError = false) {
-            const logBox = document.getElementById('serial-log');
-            const timeStr = new Date().toLocaleTimeString();
-            const div = document.createElement('div');
-            div.className = isError ? 'text-rose-400' : 'text-cyan-400/90';
-            div.textContent = `[${timeStr}] ${message}`;
-            logBox.appendChild(div);
-            logBox.scrollTop = logBox.scrollHeight;
-        }
-
-        function clearLogs() {
-            document.getElementById('serial-log').innerHTML = '';
-            appendLog("Console 已清空。");
-        }
-
-        async function toggleConnection() {
-            if (bleDevice && bleDevice.gatt.connected) {
-                disconnect();
-            } else {
-                await connect();
-            }
-        }
-
-        async function connect() {
+        document.getElementById('connectBtn').addEventListener('click', async () => {
             try {
-                if (!navigator.bluetooth) {
-                    alert("您的瀏覽器不支援 Web Bluetooth API，請使用 Chrome、Edge 或支援 BLE 的瀏覽器。");
-                    return;
-                }
-
-                appendLog("狀態：搜尋 41204328 裝置中...");
-                bleDevice = await navigator.bluetooth.requestDevice({
-                    filters: [{ name: "41204328" }],
-                    optionalServices: [SERVICE]
+                bluetoothDevice = await navigator.bluetooth.requestDevice({
+                    filters: [{ name: 'ESP32-LED-Control' }],
+                    optionalServices: [SERVICE_UUID]
                 });
-
-                appendLog("狀態：連接 Gatt Server...");
-                bleServer = await bleDevice.gatt.connect();
-
-                // 更新連線狀態 UI
-                document.getElementById('connection-badge').classList.remove('hidden');
-                document.getElementById('status-dot').className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-none';
-                document.getElementById('status-text').textContent = '已連線 (BLE)';
-                document.getElementById('connect-btn-text').textContent = '中斷 BLE';
-                document.getElementById('connect-btn').className = 'flex items-center space-x-2 px-5 py-2.5 rounded-xl font-cyber text-xs sm:text-sm font-bold bg-gradient-to-r from-rose-500 to-pink-600 text-white hover:from-rose-400 hover:to-pink-500 shadow-neon-pink transition-all duration-300';
-
-                bleDevice.addEventListener("gattserverdisconnected", () => {
-                    appendLog("狀態：已斷線", true);
-                    onDisconnectedUI();
-                });
-
-                let service = await bleServer.getPrimaryService(SERVICE);
-
-                // 讀取裝置資訊
-                try {
-                    let infoChar = await service.getCharacteristic(INFO);
-                    let infoValue = await infoChar.readValue();
-                    let infoText = new TextDecoder().decode(infoValue);
-                    document.getElementById("device-info-text").innerHTML = `(${infoText})`;
-                    appendLog("ESP32 Info: " + infoText);
-                } catch(e) {
-                    console.log("讀取 INFO 失敗", e);
-                }
-
-                // 訂閱感測器資料 (DATA)
-                dataChar = await service.getCharacteristic(DATA);
-                await dataChar.startNotifications();
-                dataChar.addEventListener("characteristicvaluechanged", (event) => {
-                    let text = new TextDecoder().decode(event.target.value);
-                    try {
-                        let json = JSON.parse(text);
-                        // 更新畫面 (配合 app.js 的 JSON Key)
-                        if(json.t !== undefined) document.getElementById("temp").innerHTML = json.t + " °C";
-                        if(json.h !== undefined) document.getElementById("hum").innerHTML = json.h + " %";
-                        if(json.l !== undefined) updateLdrUI(json.l);
-                        if(json.p !== undefined) updatePotUI(json.p);
-                        if(json.a !== undefined) document.getElementById("btnA").innerHTML = json.a ? "按下" : "放開";
-                        if(json.b !== undefined) document.getElementById("btnB").innerHTML = json.b ? "按下" : "放開";
-                        if(json.bright !== undefined) {
-                            finalOutputBrightness = json.bright;
-                            document.getElementById('final-bright-val').textContent = json.bright;
-                            updateLedPreview();
-                        }
-                    } catch(e) {
-                        console.log("JSON Parse Error:", e);
-                    }
-                });
-
-                // 取得指令特徵值 (COMMAND)
-                commandChar = await service.getCharacteristic(COMMAND);
-                appendLog("狀態：ESP32 BLE 連線就緒");
-
-            } catch(e) {
-                console.error(e);
-                appendLog("連線失敗：" + e.message, true);
-                onDisconnectedUI();
+                const server = await bluetoothDevice.gatt.connect();
+                const service = await server.getPrimaryService(SERVICE_UUID);
+                bluetoothCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
+                document.getElementById('status').innerText = '狀態: 已連線';
+            } catch (error) {
+                console.error(error);
+                document.getElementById('status').innerText = '連線失敗';
             }
-        }
+        });
 
-        function disconnect() {
-            if(bleDevice && bleDevice.gatt.connected) {
-                bleDevice.gatt.disconnect();
+        async function sendData(data) {
+            if (!bluetoothCharacteristic) {
+                alert('請先點擊「連接藍牙裝置」！');
+                return;
             }
-            onDisconnectedUI();
+            const encoder = new TextEncoder();
+            await bluetoothCharacteristic.writeValue(encoder.encode(data));
         }
 
-        function onDisconnectedUI() {
-            commandChar = null; 
-            dataChar = null; 
-            bleServer = null;
+        document.getElementById('onBtn').addEventListener('click', () => sendData('ON'));
+        document.getElementById('offBtn').addEventListener('click', () => sendData('OFF'));
+        document.getElementById('autoBtn').addEventListener('click', () => sendData('AUTO'));
 
-            document.getElementById('connection-badge').classList.add('hidden');
-            document.getElementById('status-dot').className = 'w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse';
-            document.getElementById('status-text').textContent = '未連線';
-            document.getElementById('connect-btn-text').textContent = '搜尋與連線 BLE';
-            document.getElementById('connect-btn').className = 'flex items-center space-x-2 px-5 py-2.5 rounded-xl font-cyber text-xs sm:text-sm font-bold bg-gradient-to-r from-cyan-500 to-blue-600 text-black hover:from-cyan-400 hover:to-blue-500 shadow-neon-cyan transition-all duration-300';
-            document.getElementById("device-info-text").innerHTML = "";
-            appendLog("藍芽已中斷連線。");
+        function updateLED() {
+            const hex = document.getElementById('colorPicker').value;
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            const bright = document.getElementById('brightnessRange').value;
+            sendData(`${r},${g},${b},${bright}`);
         }
 
-        async function sendCmd(cmdStr) {
-            if(!commandChar) { 
-                appendLog(`[未連線 BLE] 嘗試傳送: ${cmdStr}`, true);
-                return; 
-            }
-            try {
-                await commandChar.writeValue(new TextEncoder().encode(cmdStr));
-                appendLog(`[TX ➔ BLE] ${cmdStr}`);
-            } catch(e) {
-                appendLog(`傳送失敗: ${e.message}`, true);
-            }
-        }
-
-        function updateLdrUI(ldrVal) {
-            ldrVal = Math.max(0, Math.min(4095, ldrVal));
-            const percent = ((ldrVal / 4095) * 100).toFixed(1);
-            const darkFactor = ((4095 - ldrVal) / 4095).toFixed(2);
-
-            document.getElementById('ldr-val').textContent = ldrVal;
-            document.getElementById('ldr-bar').style.width = `${percent}%`;
-            document.getElementById('dark-factor-text').textContent = `暗度增益: ${darkFactor}x`;
-        }
-
-        function updatePotUI(potVal) {
-            potVal = Math.max(0, Math.min(4095, potVal));
-            const percent = ((potVal / 4095) * 100).toFixed(1);
-
-            document.getElementById('pot-val').textContent = potVal;
-            document.getElementById('pot-bar').style.width = `${percent}%`;
-            document.getElementById('pot-percent').textContent = `${percent}%`;
-        }
-
-        function hexToRgb(hex) {
-            let bigint = parseInt(hex.replace('#', ''), 16);
-            return {
-                r: (bigint >> 16) & 255,
-                g: (bigint >> 8) & 255,
-                b: bigint & 255
-            };
-        }
-
-        function onColorPickerChange(hex) {
-            currentHexColor = hex;
-            currentRgb = hexToRgb(hex);
-            document.getElementById('hex-display').textContent = hex.toUpperCase();
-            updateLedPreview();
-            sendCmd(`RGB:${currentRgb.r},${currentRgb.g},${currentRgb.b}`);
-        }
-
-        function setPresetColor(hex) {
-            document.getElementById('main-color-picker').value = hex;
-            onColorPickerChange(hex);
-        }
-
-        function onBrightnessChange(val) {
-            currentBrightness = parseInt(val);
-            const percent = Math.round((currentBrightness / 255) * 100);
-            document.getElementById('bright-val-text').textContent = `${percent}% (${currentBrightness})`;
-            sendCmd(`BRIGHT:${currentBrightness}`);
-        }
-
-        function togglePower() {
-            isPowerOn = !isPowerOn;
-            const btn = document.getElementById('power-btn');
-            const btnText = document.getElementById('power-btn-text');
-
-            if (isPowerOn) {
-                btn.className = 'px-5 py-2 rounded-xl font-cyber text-xs font-bold transition-all duration-300 flex items-center space-x-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30 shadow-lg';
-                btnText.textContent = '開關：開啟 (ON)';
-                sendCmd("ON");
-            } else {
-                btn.className = 'px-5 py-2 rounded-xl font-cyber text-xs font-bold transition-all duration-300 flex items-center space-x-2 bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700';
-                btnText.textContent = '開關：關閉 (OFF)';
-                sendCmd("OFF");
-            }
-            updateLedPreview();
-        }
-
-        function updateLedPreview() {
-            for (let i = 0; i < 3; i++) {
-                const led = document.getElementById(`preview-led-${i}`);
-                if (!isPowerOn || finalOutputBrightness === 0) {
-                    led.style.backgroundColor = '#0f172a';
-                    led.style.boxShadow = 'none';
-                    led.style.borderColor = '#334155';
-                } else {
-                    const ratio = finalOutputBrightness / 255;
-                    const r = Math.round(currentRgb.r * ratio);
-                    const g = Math.round(currentRgb.g * ratio);
-                    const b = Math.round(currentRgb.b * ratio);
-                    const displayColor = `rgb(${r}, ${g}, ${b})`;
-                    const glowRadius = Math.round(15 * ratio) + 5;
-
-                    led.style.backgroundColor = displayColor;
-                    led.style.borderColor = displayColor;
-                    led.style.boxShadow = `0 0 ${glowRadius}px ${displayColor}`;
-                }
-            }
-        }
-
-        // Initial preview state setup
-        updateLedPreview();
+        document.getElementById('colorPicker').addEventListener('input', updateLED);
+        document.getElementById('brightnessRange').addEventListener('input', updateLED);
     </script>
 </body>
 </html>
