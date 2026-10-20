@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESP32 智慧燈光控制儀表板</title>
+    <title>ESP32 智慧燈光控制儀表板 (BLE 藍芽版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -116,14 +116,15 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
             <div class="flex items-center space-x-3">
                 <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-cyan-500 to-pink-500 flex items-center justify-center shadow-neon-cyan">
-                    <i data-lucide="cpu" class="w-6 h-6 text-black stroke-[2.5]"></i>
+                    <i data-lucide="bluetooth" class="w-6 h-6 text-black stroke-[2.5]"></i>
                 </div>
                 <div>
                     <h1 class="font-cyber font-black text-xl sm:text-2xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-pink-500 to-purple-400">
-                        ESP32 NEXUS SYNCHRO
+                        ESP32 BLE SYNCHRO
                     </h1>
-                    <p class="text-xs text-slate-400 font-cyber flex items-center space-x-1">
-                        <span>WS2812 智慧控制與動態感測儀表板</span>
+                    <p class="text-xs text-slate-400 font-cyber flex items-center space-x-2">
+                        <span>WS2812 藍芽智慧控制儀表板</span>
+                        <span id="device-info-text" class="text-cyan-400 font-mono"></span>
                     </p>
                 </div>
             </div>
@@ -135,8 +136,8 @@
                     <span id="status-text" class="text-slate-400">未連線</span>
                 </div>
                 <button id="connect-btn" onclick="toggleConnection()" class="flex items-center space-x-2 px-5 py-2.5 rounded-xl font-cyber text-xs sm:text-sm font-bold bg-gradient-to-r from-cyan-500 to-blue-600 text-black hover:from-cyan-400 hover:to-blue-500 shadow-neon-cyan transition-all duration-300 transform hover:scale-105 active:scale-95">
-                    <i data-lucide="cable" class="w-4 h-4"></i>
-                    <span id="connect-btn-text">連線 ESP32</span>
+                    <i data-lucide="bluetooth-searching" class="w-4 h-4"></i>
+                    <span id="connect-btn-text">搜尋與連線 BLE</span>
                 </button>
             </div>
         </div>
@@ -153,7 +154,7 @@
                 <div class="flex items-center justify-between mb-6">
                     <div class="flex items-center space-x-3">
                         <i data-lucide="sliders-horizontal" class="text-cyan-400 w-6 h-6"></i>
-                        <h2 class="font-cyber font-bold text-lg text-cyan-400">同步燈光控制面板</h2>
+                        <h2 class="font-cyber font-bold text-lg text-cyan-400">藍芽同步燈光控制面板</h2>
                     </div>
                     
                     <!-- Main Power Toggle -->
@@ -237,41 +238,41 @@
                 </div>
             </section>
 
-            <!-- Serial Log Console -->
+            <!-- BLE Log Console -->
             <section class="glass-card p-6">
                 <div class="flex items-center justify-between mb-3">
                     <h2 class="font-cyber font-bold text-xs text-slate-300 flex items-center space-x-2">
                         <i data-lucide="terminal" class="w-4 h-4 text-cyan-400"></i>
-                        <span>序列埠通訊 Console Log</span>
+                        <span>BLE 藍芽 Console Log</span>
                     </h2>
                     <button onclick="clearLogs()" class="text-xs text-slate-400 hover:text-cyan-400 px-2.5 py-1 rounded bg-slate-900 border border-slate-800 font-cyber transition-all">
                         清空訊息
                     </button>
                 </div>
                 <div id="serial-log" class="bg-black/90 border border-slate-800 rounded-xl p-4 h-36 overflow-y-auto font-mono text-xs text-cyan-400/90 space-y-1">
-                    <div class="text-slate-500">[System] 準備就緒。請點擊右上角「連線 ESP32」開始傳輸。</div>
+                    <div class="text-slate-500">[System] 準備就緒。點擊右上角「搜尋與連線 BLE」以尋找 41204328 裝置。</div>
                 </div>
             </section>
         </div>
 
-        <!-- Right Column: Real-time Sensors & Arduino Code (5 Cols) -->
+        <!-- Right Column: Real-time Sensors & Dynamic Info (5 Cols) -->
         <div class="lg:col-span-5 space-y-8">
             
             <!-- Real-time Sensor Dashboard -->
             <section class="glass-card p-6 shadow-glow-panel">
                 <h2 class="font-cyber font-bold text-lg text-cyan-400 mb-6 flex items-center space-x-2">
                     <i data-lucide="activity" class="w-5 h-5 text-cyan-400"></i>
-                    <span>硬體感測器即時監控</span>
+                    <span>藍芽 BLE 感測器即時監控</span>
                 </h2>
 
                 <div class="space-y-6">
                     
-                    <!-- LDR Sensor (GPIO39) Card -->
+                    <!-- LDR Light Sensor Card -->
                     <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-xs font-medium text-slate-300 flex items-center space-x-2">
                                 <i data-lucide="sun-medium" class="w-4 h-4 text-yellow-400"></i>
-                                <span>光敏電阻 LDR (GPIO39)</span>
+                                <span>光敏電阻 LDR (GPIO39) [json.l]</span>
                             </span>
                             <span id="ldr-val" class="font-cyber font-bold text-lg text-yellow-400">0</span>
                         </div>
@@ -284,12 +285,12 @@
                         </div>
                     </div>
 
-                    <!-- Potentiometer Card (GPIO34) -->
+                    <!-- Potentiometer Card -->
                     <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-xs font-medium text-slate-300 flex items-center space-x-2">
                                 <i data-lucide="gauge" class="w-4 h-4 text-pink-400"></i>
-                                <span>可變電阻 Potentiometer (GPIO34)</span>
+                                <span>可變電阻 Potentiometer [json.p]</span>
                             </span>
                             <span id="pot-val" class="font-cyber font-bold text-lg text-pink-400">0</span>
                         </div>
@@ -299,6 +300,30 @@
                         <div class="flex justify-between items-center mt-2 text-[11px] text-slate-400">
                             <span>硬體旋鈕比例</span>
                             <span id="pot-percent" class="font-cyber text-pink-400">0%</span>
+                        </div>
+                    </div>
+
+                    <!-- Environment Temp & Humidity (Optional Sensor via BLE) -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-3 flex flex-col items-center">
+                            <span class="text-[11px] text-slate-400 font-cyber">溫度 (json.t)</span>
+                            <span id="temp" class="text-xl font-bold font-cyber text-cyan-400 mt-1">-- °C</span>
+                        </div>
+                        <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-3 flex flex-col items-center">
+                            <span class="text-[11px] text-slate-400 font-cyber">濕度 (json.h)</span>
+                            <span id="hum" class="text-xl font-bold font-cyber text-cyan-400 mt-1">-- %</span>
+                        </div>
+                    </div>
+
+                    <!-- Hardware Buttons Status -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-3 flex justify-between items-center">
+                            <span class="text-xs text-slate-400 font-cyber">按鈕 A</span>
+                            <span id="btnA" class="text-xs px-2 py-1 bg-slate-800 rounded font-bold text-purple-400">放開</span>
+                        </div>
+                        <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-3 flex justify-between items-center">
+                            <span class="text-xs text-slate-400 font-cyber">按鈕 B</span>
+                            <span id="btnB" class="text-xs px-2 py-1 bg-slate-800 rounded font-bold text-purple-400">放開</span>
                         </div>
                     </div>
 
@@ -317,117 +342,29 @@
                 </div>
             </section>
 
-            <!-- Arduino Firmware Block -->
-            <section class="glass-card p-6">
-                <div class="flex items-center justify-between mb-3">
-                    <h2 class="font-cyber font-bold text-xs text-slate-300 flex items-center space-x-2">
-                        <i data-lucide="code" class="w-4 h-4 text-cyan-400"></i>
-                        <span>ESP32 Arduino 韌體程式碼</span>
-                    </h2>
-                    <button onclick="copyArduinoCode()" class="flex items-center space-x-1 px-2.5 py-1 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/30 font-cyber text-xs transition-all">
-                        <i data-lucide="copy" class="w-3.5 h-3.5"></i>
-                        <span id="copy-btn-text">複製程式碼</span>
-                    </button>
-                </div>
-                <div class="relative">
-                    <pre class="bg-black/90 border border-slate-800 rounded-xl p-3 h-52 overflow-y-auto font-mono text-[11px] text-slate-300 leading-relaxed" id="arduino-code-text"><code>#include &lt;Adafruit_NeoPixel.h&gt;
-
-const int LDR_PIN = 39;     
-const int POT_PIN = 34;     
-const int LED_PIN = 26;     
-const int NUM_PIXELS = 3;   
-
-Adafruit_NeoPixel pixels(NUM_PIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
-
-bool ledState = true;       
-int mainRed = 255;          
-int mainGreen = 0;          
-int mainBlue = 127;         
-int webBrightness = 255;    
-
-void setup() {
-  Serial.begin(115200);
-  pixels.begin();
-  pixels.show();
-}
-
-void loop() {
-  if (Serial.available() &gt; 0) {
-    String command = Serial.readStringUntil('\n');
-    command.trim();
-
-    if (command == "ON") {
-      ledState = true;
-      Serial.println("ACK:ON");
-    } 
-    else if (command == "OFF") {
-      ledState = false;
-      Serial.println("ACK:OFF");
-    }
-    else if (command.startsWith("RGB:")) {
-      int firstComma = command.indexOf(',');
-      int secondComma = command.indexOf(',', firstComma + 1);
-      if (firstComma &gt; 0 && secondComma &gt; 0) {
-        mainRed = command.substring(4, firstComma).toInt();
-        mainGreen = command.substring(firstComma + 1, secondComma).toInt();
-        mainBlue = command.substring(secondComma + 1).toInt();
-        ledState = true;
-        Serial.printf("ACK:RGB(%d,%d,%d)\n", mainRed, mainGreen, mainBlue);
-      }
-    }
-    else if (command.startsWith("BRIGHT:")) {
-      webBrightness = command.substring(7).toInt();
-      webBrightness = constrain(webBrightness, 0, 255);
-      Serial.printf("ACK:BRIGHT(%d)\n", webBrightness);
-    }
-  }
-
-  int ldrValue = analogRead(LDR_PIN);  
-  int potValue = analogRead(POT_PIN);  
-
-  float darkMultiplier = (float)(4095 - ldrValue) / 4095.0;
-  if (darkMultiplier &lt; 0.1) darkMultiplier = 0.1; 
-
-  float potMultiplier = (float)potValue / 4095.0;
-  float finalRatio = ((float)webBrightness / 255.0) * darkMultiplier * potMultiplier;
-
-  for (int i = 0; i &lt; NUM_PIXELS; i++) {
-    if (!ledState) {
-      pixels.setPixelColor(i, pixels.Color(0, 0, 0));
-    } else {
-      int r = mainRed * finalRatio;
-      int g = mainGreen * finalRatio;
-      int b = mainBlue * finalRatio;
-      pixels.setPixelColor(i, pixels.Color(r, g, b));
-    }
-  }
-  pixels.show();
-
-  Serial.printf("{\"ldr\":%d,\"pot\":%d,\"state\":%s,\"bright\":%d}\n", 
-                ldrValue, potValue, ledState ? "true" : "false", (int)(finalRatio * 255));
-
-  delay(100);
-}</code></pre>
-                </div>
-            </section>
-
         </div>
     </main>
 
     <!-- Footer -->
     <footer class="border-t border-cyber-border/50 py-4 text-center text-xs text-slate-500 font-cyber">
-        ESP32 WS2812 Synchro Controller &bull; Designed with WebSerial API & Cyberpunk Theme
+        ESP32 WS2812 Synchro Controller &bull; Designed with Web Bluetooth API (BLE)
     </footer>
 
     <script>
-        // WebSerial state
-        let port;
-        let reader;
-        let inputStream;
-        let outputStream;
-        let writer;
+        // =======================
+        // BLE UUID (與 app.js 完全一致)
+        // =======================
+        const SERVICE = "12345678-1234-1234-1234-000000000001";
+        const INFO    = "12345678-1234-1234-1234-000000000010";
+        const DATA    = "12345678-1234-1234-1234-000000000020";
+        const COMMAND = "12345678-1234-1234-1234-000000000030";
 
-        // Unified LED State
+        let bleDevice = null;
+        let bleServer = null;
+        let commandChar = null;
+        let dataChar = null;
+
+        // UI State
         let isPowerOn = true;
         let currentHexColor = '#ff007f';
         let currentRgb = { r: 255, g: 0, b: 127 };
@@ -453,115 +390,120 @@ void loop() {
         }
 
         async function toggleConnection() {
-            if (port) {
-                await disconnectSerial();
+            if (bleDevice && bleDevice.gatt.connected) {
+                disconnect();
             } else {
-                await connectSerial();
+                await connect();
             }
         }
 
-        async function connectSerial() {
-            if (!('serial' in navigator)) {
-                appendLog("您的瀏覽器不支援 WebSerial API，請使用 Chrome 或 Edge 開啟。", true);
-                alert("您的瀏覽器不支援 WebSerial API，請使用 Chrome 或 Edge 開啟。");
-                return;
-            }
-
+        async function connect() {
             try {
-                port = await navigator.serial.requestPort();
-                await port.open({ baudRate: 115200 });
+                if (!navigator.bluetooth) {
+                    alert("您的瀏覽器不支援 Web Bluetooth API，請使用 Chrome、Edge 或支援 BLE 的瀏覽器。");
+                    return;
+                }
 
-                const textEncoder = new TextEncoderStream();
-                outputStream = textEncoder.readable;
-                writer = textEncoder.writable.getWriter();
-                textEncoder.pipeTo(port.writable);
+                appendLog("狀態：搜尋 41204328 裝置中...");
+                bleDevice = await navigator.bluetooth.requestDevice({
+                    filters: [{ name: "41204328" }],
+                    optionalServices: [SERVICE]
+                });
 
-                // Update UI Connection status
+                appendLog("狀態：連接 Gatt Server...");
+                bleServer = await bleDevice.gatt.connect();
+
+                // 更新連線狀態 UI
                 document.getElementById('connection-badge').classList.remove('hidden');
                 document.getElementById('status-dot').className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-none';
-                document.getElementById('status-text').textContent = '已連線 (115200)';
-                document.getElementById('connect-btn-text').textContent = '中斷連線';
+                document.getElementById('status-text').textContent = '已連線 (BLE)';
+                document.getElementById('connect-btn-text').textContent = '中斷 BLE';
                 document.getElementById('connect-btn').className = 'flex items-center space-x-2 px-5 py-2.5 rounded-xl font-cyber text-xs sm:text-sm font-bold bg-gradient-to-r from-rose-500 to-pink-600 text-white hover:from-rose-400 hover:to-pink-500 shadow-neon-pink transition-all duration-300';
 
-                appendLog("成功連線至 ESP32 (115200 Baud)");
-                readSerialLoop();
+                bleDevice.addEventListener("gattserverdisconnected", () => {
+                    appendLog("狀態：已斷線", true);
+                    onDisconnectedUI();
+                });
 
-            } catch (error) {
-                console.error('Serial connection error:', error);
-                appendLog(`連線失敗: ${error.message}`, true);
-                port = null;
+                let service = await bleServer.getPrimaryService(SERVICE);
+
+                // 讀取裝置資訊
+                try {
+                    let infoChar = await service.getCharacteristic(INFO);
+                    let infoValue = await infoChar.readValue();
+                    let infoText = new TextDecoder().decode(infoValue);
+                    document.getElementById("device-info-text").innerHTML = `(${infoText})`;
+                    appendLog("ESP32 Info: " + infoText);
+                } catch(e) {
+                    console.log("讀取 INFO 失敗", e);
+                }
+
+                // 訂閱感測器資料 (DATA)
+                dataChar = await service.getCharacteristic(DATA);
+                await dataChar.startNotifications();
+                dataChar.addEventListener("characteristicvaluechanged", (event) => {
+                    let text = new TextDecoder().decode(event.target.value);
+                    try {
+                        let json = JSON.parse(text);
+                        // 更新畫面 (配合 app.js 的 JSON Key)
+                        if(json.t !== undefined) document.getElementById("temp").innerHTML = json.t + " °C";
+                        if(json.h !== undefined) document.getElementById("hum").innerHTML = json.h + " %";
+                        if(json.l !== undefined) updateLdrUI(json.l);
+                        if(json.p !== undefined) updatePotUI(json.p);
+                        if(json.a !== undefined) document.getElementById("btnA").innerHTML = json.a ? "按下" : "放開";
+                        if(json.b !== undefined) document.getElementById("btnB").innerHTML = json.b ? "按下" : "放開";
+                        if(json.bright !== undefined) {
+                            finalOutputBrightness = json.bright;
+                            document.getElementById('final-bright-val').textContent = json.bright;
+                            updateLedPreview();
+                        }
+                    } catch(e) {
+                        console.log("JSON Parse Error:", e);
+                    }
+                });
+
+                // 取得指令特徵值 (COMMAND)
+                commandChar = await service.getCharacteristic(COMMAND);
+                appendLog("狀態：ESP32 BLE 連線就緒");
+
+            } catch(e) {
+                console.error(e);
+                appendLog("連線失敗：" + e.message, true);
+                onDisconnectedUI();
             }
         }
 
-        async function disconnectSerial() {
-            try {
-                if (reader) {
-                    await reader.cancel();
-                }
-                if (port) {
-                    await port.close();
-                    port = null;
-                }
-            } catch (error) {
-                console.error('Disconnect error:', error);
+        function disconnect() {
+            if(bleDevice && bleDevice.gatt.connected) {
+                bleDevice.gatt.disconnect();
             }
+            onDisconnectedUI();
+        }
+
+        function onDisconnectedUI() {
+            commandChar = null; 
+            dataChar = null; 
+            bleServer = null;
 
             document.getElementById('connection-badge').classList.add('hidden');
             document.getElementById('status-dot').className = 'w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse';
             document.getElementById('status-text').textContent = '未連線';
-            document.getElementById('connect-btn-text').textContent = '連線 ESP32';
+            document.getElementById('connect-btn-text').textContent = '搜尋與連線 BLE';
             document.getElementById('connect-btn').className = 'flex items-center space-x-2 px-5 py-2.5 rounded-xl font-cyber text-xs sm:text-sm font-bold bg-gradient-to-r from-cyan-500 to-blue-600 text-black hover:from-cyan-400 hover:to-blue-500 shadow-neon-cyan transition-all duration-300';
-
-            appendLog("序列埠連線已中斷。");
+            document.getElementById("device-info-text").innerHTML = "";
+            appendLog("藍芽已中斷連線。");
         }
 
-        async function readSerialLoop() {
-            const textDecoder = new TextDecoderStream();
-            inputStream = port.readable.pipeThrough(textDecoder);
-            reader = inputStream.getReader();
-
-            let lineBuffer = "";
-            try {
-                while (true) {
-                    const { value, done } = await reader.read();
-                    if (done) break;
-                    if (value) {
-                        lineBuffer += value;
-                        let lines = lineBuffer.split('\n');
-                        lineBuffer = lines.pop();
-
-                        for (let line of lines) {
-                            line = line.trim();
-                            if (line.length > 0) {
-                                handleIncomingData(line);
-                            }
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error('Read error:', error);
-            } finally {
-                reader.releaseLock();
+        async function sendCmd(cmdStr) {
+            if(!commandChar) { 
+                appendLog(`[未連線 BLE] 嘗試傳送: ${cmdStr}`, true);
+                return; 
             }
-        }
-
-        function handleIncomingData(data) {
-            // Check for JSON Sensor Data: {"ldr":1234,"pot":2048,"state":true,"bright":200}
-            if (data.startsWith("{") && data.endsWith("}")) {
-                try {
-                    const json = JSON.parse(data);
-                    if (json.ldr !== undefined) updateLdrUI(json.ldr);
-                    if (json.pot !== undefined) updatePotUI(json.pot);
-                    if (json.bright !== undefined) {
-                        finalOutputBrightness = json.bright;
-                        document.getElementById('final-bright-val').textContent = json.bright;
-                        updateLedPreview();
-                    }
-                } catch (e) {
-                    // Ignore JSON parse fail
-                }
-            } else {
-                appendLog(`[ESP32] ${data}`);
+            try {
+                await commandChar.writeValue(new TextEncoder().encode(cmdStr));
+                appendLog(`[TX ➔ BLE] ${cmdStr}`);
+            } catch(e) {
+                appendLog(`傳送失敗: ${e.message}`, true);
             }
         }
 
@@ -584,19 +526,6 @@ void loop() {
             document.getElementById('pot-percent').textContent = `${percent}%`;
         }
 
-        async function sendToEsp32(command) {
-            if (!port || !writer) {
-                appendLog(`[本地] 指令「${command}」（未連線 ESP32）`);
-                return;
-            }
-            try {
-                await writer.write(command + "\n");
-                appendLog(`[TX ➔ ESP32] ${command}`);
-            } catch (error) {
-                appendLog(`發送錯誤: ${error.message}`, true);
-            }
-        }
-
         function hexToRgb(hex) {
             let bigint = parseInt(hex.replace('#', ''), 16);
             return {
@@ -611,7 +540,7 @@ void loop() {
             currentRgb = hexToRgb(hex);
             document.getElementById('hex-display').textContent = hex.toUpperCase();
             updateLedPreview();
-            sendToEsp32(`RGB:${currentRgb.r},${currentRgb.g},${currentRgb.b}`);
+            sendCmd(`RGB:${currentRgb.r},${currentRgb.g},${currentRgb.b}`);
         }
 
         function setPresetColor(hex) {
@@ -623,7 +552,7 @@ void loop() {
             currentBrightness = parseInt(val);
             const percent = Math.round((currentBrightness / 255) * 100);
             document.getElementById('bright-val-text').textContent = `${percent}% (${currentBrightness})`;
-            sendToEsp32(`BRIGHT:${currentBrightness}`);
+            sendCmd(`BRIGHT:${currentBrightness}`);
         }
 
         function togglePower() {
@@ -634,11 +563,11 @@ void loop() {
             if (isPowerOn) {
                 btn.className = 'px-5 py-2 rounded-xl font-cyber text-xs font-bold transition-all duration-300 flex items-center space-x-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30 shadow-lg';
                 btnText.textContent = '開關：開啟 (ON)';
-                sendToEsp32("ON");
+                sendCmd("ON");
             } else {
                 btn.className = 'px-5 py-2 rounded-xl font-cyber text-xs font-bold transition-all duration-300 flex items-center space-x-2 bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700';
                 btnText.textContent = '開關：關閉 (OFF)';
-                sendToEsp32("OFF");
+                sendCmd("OFF");
             }
             updateLedPreview();
         }
@@ -663,23 +592,6 @@ void loop() {
                     led.style.boxShadow = `0 0 ${glowRadius}px ${displayColor}`;
                 }
             }
-        }
-
-        function copyArduinoCode() {
-            const codeText = document.getElementById('arduino-code-text').innerText;
-            const textArea = document.createElement('textarea');
-            textArea.value = codeText;
-            document.body.appendChild(textArea);
-            textArea.select();
-            try {
-                document.execCommand('copy');
-                const btnText = document.getElementById('copy-btn-text');
-                btnText.textContent = '已複製！';
-                setTimeout(() => { btnText.textContent = '複製程式碼'; }, 2000);
-            } catch (err) {
-                console.error('Failed to copy text', err);
-            }
-            document.body.removeChild(textArea);
         }
 
         // Initial preview state setup
